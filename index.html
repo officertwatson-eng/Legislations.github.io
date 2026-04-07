@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlueBook London FivePD</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    .battenburg {
+      background: repeating-linear-gradient(
+        90deg,
+        #003087 0px,
+        #003087 25px,
+        #FFCF00 25px,
+        #FFCF00 50px
+      );
+      box-shadow: 0 0 10px rgba(255, 207, 0, 0.6);
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200 min-h-screen">
+
+  <!-- Header with Battenburg -->
+  <header class="battenburg py-4 border-b-4 border-yellow-400">
+    <div class="max-w-6xl mx-auto px-6 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <i class="fas fa-shield-alt text-3xl text-yellow-400"></i>
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight">BlueBook</h1>
+          <p class="text-xs text-yellow-300 -mt-1">LONDON FIVEPD</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-6 text-sm">
+        <button onclick="toggleDarkMode()" class="px-4 py-2 rounded-lg hover:bg-zinc-800">
+          <i class="fas fa-moon"></i>
+        </button>
+        <a href="#my-case" onclick="showMyCase()" 
+           class="flex items-center gap-2 bg-yellow-400 text-black px-5 py-2 rounded-lg font-semibold hover:bg-yellow-300">
+          <i class="fas fa-briefcase"></i>
+          My Case <span id="case-count" class="bg-black text-yellow-400 text-xs px-2 py-0.5 rounded-full">0</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-6 py-8">
+    <!-- Hero -->
+    <div class="text-center mb-10">
+      <h2 class="text-4xl font-bold mb-2">Instant Legal Reference</h2>
+      <p class="text-zinc-400">For Metropolitan Police Officers</p>
+    </div>
+
+    <!-- Search -->
+    <div class="mb-10">
+      <input 
+        type="text" 
+        id="searchInput"
+        onkeyup="handleSearch(event)"
+        placeholder="Search: FTS, TWOC, S136, ABH, tinted windows, PACE s24..."
+        class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 text-lg focus:outline-none focus:border-yellow-400 transition">
+    </div>
+
+    <!-- Categories -->
+    <div class="mb-12">
+      <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+        <i class="fas fa-list"></i> Categories
+      </h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="categories">
+        <!-- Filled by JavaScript -->
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="space-y-6"></div>
+  </div>
+
+  <!-- My Case Modal -->
+  <div id="myCaseModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+    <div class="bg-zinc-900 rounded-3xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden">
+      <div class="p-6 border-b border-zinc-700 flex justify-between items-center">
+        <h3 class="text-2xl font-bold">My Case</h3>
+        <button onclick="closeMyCase()" class="text-3xl leading-none">×</button>
+      </div>
+      <div id="myCaseContent" class="p-6 overflow-auto max-h-[60vh]"></div>
+      <div class="p-6 border-t border-zinc-700 flex gap-3">
+        <button onclick="clearMyCase()" 
+                class="flex-1 bg-red-600 hover:bg-red-700 py-3 rounded-2xl font-semibold">Clear All</button>
+        <button onclick="copyToReport()" 
+                class="flex-1 bg-yellow-400 text-black hover:bg-yellow-300 py-3 rounded-2xl font-semibold">
+          Copy All To Report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-zinc-950 py-6 text-center text-zinc-500 text-sm">
+    BlueBook London FivePD • Reference tool only • Always verify with current legislation
+  </footer>
+
+  <script>
+    // Sample Data
+    let legalData = [
+      { id: 1, acronym: "FTS", name: "Failing to Stop", section: "Road Traffic Act 1988 s.163", summary: "Failure to stop when required by a police officer.", enforcement: "Arrestable under PACE s.24. Fixed Penalty or Prohibition possible." },
+      { id: 2, acronym: "TWOC", name: "Taking Without Consent", section: "Theft Act 1968 s.12", summary: "Taking a motor vehicle without owner's consent.", enforcement: "Arrestable offence." },
+      { id: 3, acronym: "ABH", name: "Actual Bodily Harm", section: "Offences Against the Person Act 1861 s.47", summary: "Assault occasioning actual bodily harm.", enforcement: "Arrestable." },
+      { id: 4, acronym: "S136", name: "Mental Health - Section 136", section: "Mental Health Act 1983 s.136", summary: "Power to remove person from public place to place of safety.", enforcement: "Police power." },
+      { id: 5, acronym: "TINT", name: "Tinted Windows", section: "Road Vehicles (C&U) Regulations 1986 Reg 32", summary: "Illegal window tinting.", enforcement: "Prohibition Notice possible." }
+    ];
+
+    let myCase = [];
+
+    // Render Categories
+    function renderCategories() {
+      const cats = ["Police Powers & PACE", "Road Traffic", "Criminal Offences", "Public Order", "Mental Health", "Drugs & Firearms"];
+      let html = '';
+      cats.forEach(cat => {
+        html += `
+          <div onclick="alert('Category: ${cat} - Coming soon in full version')" 
+               class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-2xl p-6 cursor-pointer transition">
+            <h4 class="font-semibold">${cat}</h4>
+          </div>`;
+      });
+      document.getElementById('categories').innerHTML = html;
+    }
+
+    // Simple Search
+    function handleSearch(e) {
+      if (e.key === "Enter") {
+        const query = document.getElementById('searchInput').value.toUpperCase().trim();
+        const resultsDiv = document.getElementById('results');
+        
+        let result = legalData.find(item => 
+          item.acronym === query || 
+          item.name.toUpperCase().includes(query)
+        );
+
+        if (result) {
+          resultsDiv.innerHTML = `
+            <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-8">
+              <div class="flex justify-between">
+                <div>
+                  <span class="text-3xl font-bold text-yellow-400">${result.acronym}</span>
+                  <span class="ml-3 text-2xl">${result.name}</span>
+                </div>
+                <button onclick="addToCase(${result.id})" 
+                        class="bg-yellow-400 text-black px-6 py-3 rounded-2xl font-semibold hover:bg-yellow-300">
+                  Add to My Case
+                </button>
+              </div>
+              <p class="mt-4"><strong>Legislation:</strong> ${result.section}</p>
+              <p class="mt-2"><strong>Summary:</strong> ${result.summary}</p>
+              <p class="mt-2"><strong>Enforcement:</strong> ${result.enforcement}</p>
+            </div>`;
+        } else {
+          resultsDiv.innerHTML = `<p class="text-center text-zinc-400 py-10">No results found for "${query}"</p>`;
+        }
+      }
+    }
+
+    function addToCase(id) {
+      const item = legalData.find(i => i.id === id);
+      if (item && !myCase.find(i => i.id === id)) {
+        myCase.push(item);
+        updateCaseCount();
+        alert(`${item.acronym} added to My Case`);
+      }
+    }
+
+    function updateCaseCount() {
+      document.getElementById('case-count').textContent = myCase.length;
+    }
+
+    function showMyCase() {
+      const modal = document.getElementById('myCaseModal');
+      const content = document.getElementById('myCaseContent');
+      
+      if (myCase.length === 0) {
+        content.innerHTML = `<p class="text-center text-zinc-400 py-10">Your case is empty</p>`;
+      } else {
+        let html = '<div class="space-y-6">';
+        myCase.forEach((item, index) => {
+          html += `
+            <div class="bg-zinc-800 rounded-2xl p-5 flex justify-between items-start">
+              <div>
+                <span class="text-yellow-400 font-bold">${item.acronym}</span> — ${item.name}
+                <p class="text-sm text-zinc-400 mt-1">${item.section}</p>
+              </div>
+              <button onclick="removeFromCase(${index})" class="text-red-500 hover:text-red-600 text-2xl">×</button>
+            </div>`;
+        });
+        html += '</div>';
+        content.innerHTML = html;
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeMyCase() {
+      document.getElementById('myCaseModal').classList.add('hidden');
+    }
+
+    function removeFromCase(index) {
+      myCase.splice(index, 1);
+      updateCaseCount();
+      showMyCase();
+    }
+
+    function clearMyCase() {
+      if (confirm("Clear entire case?")) {
+        myCase = [];
+        updateCaseCount();
+        showMyCase();
+      }
+    }
+
+    function copyToReport() {
+      if (myCase.length === 0) return;
+
+      let text = `**BlueBook London FivePD - My Case Report**\n\n`;
+      text += `**Generated:** ${new Date().toLocaleString()}\n\n`;
+      text += `---\n\n`;
+      text += `**Added Items:**\n\n`;
+
+      myCase.forEach(item => {
+        text += `• **${item.acronym}** – ${item.name}\n`;
+        text += `  **Legislation:** ${item.section}\n`;
+        text += `  **Summary:** ${item.summary}\n`;
+        text += `  **Enforcement:** ${item.enforcement}\n\n`;
+      });
+
+      text += `---\n\n`;
+      text += `**Total Items:** ${myCase.length}\n`;
+      text += `**End of Report**`;
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert("✅ Copied to clipboard! Paste into Discord.");
+        closeMyCase();
+      });
+    }
+
+    function toggleDarkMode() {
+      alert("Dark mode toggle coming in next update");
+    }
+
+    // Initialize
+    renderCategories();
+  </script>
+</body>
+</html>
